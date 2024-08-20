@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -19,10 +20,11 @@ class _GoogleMapHomePageState extends State<GoogleMapHomePage> {
   double? longitude;
   double? latitude;
   late GoogleMapController mapController;
+  List<LatLng> polylineCordinates = [];
   Map<String, Marker> markers = {};
   void onMapCreated(GoogleMapController controller) {
     mapController = controller;
-    addMarker("test", LatLng(latitude!, longitude!));
+    addMarker(LatLng(latitude!, longitude!));
   }
 
   @override
@@ -31,11 +33,35 @@ class _GoogleMapHomePageState extends State<GoogleMapHomePage> {
     super.initState();
   }
 
+  void getPoliPoints() async {
+    PolylinePoints polylinePoints = PolylinePoints();
+    PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
+        request: PolylineRequest(
+            origin: PointLatLng(latitude!, longitude!),
+            destination: PointLatLng(13.009420, 77.588860),
+            mode: TravelMode.driving),
+        googleApiKey: "AIzaSyDTEKGMwz2hby0t7yTukfdvSnC6lDBb7WU");
+    if (result.points.isNotEmpty) {
+      result.points.forEach(
+        (PointLatLng point) {
+          polylineCordinates.add(LatLng(point.latitude, point.longitude));
+        },
+      );
+    }
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: getLocation
           ? GoogleMap(
+              polylines: {
+                  Polyline(
+                      width: 3,
+                      polylineId: PolylineId("route"),
+                      points: polylineCordinates),
+                },
               myLocationEnabled: true,
               myLocationButtonEnabled: false,
               markers: markers.values.toSet(),
@@ -83,13 +109,23 @@ class _GoogleMapHomePageState extends State<GoogleMapHomePage> {
     return true;
   }
 
-  addMarker(String id, LatLng location) {
-    var marker = Marker(
-        markerId: MarkerId(id),
+  addMarker(LatLng location) {
+    Marker(
+        markerId: MarkerId("id1"),
         position: location,
         infoWindow:
-            InfoWindow(title: "leapsurge", snippet: "----------------"));
-    markers[id] = marker;
+            const InfoWindow(title: "leapsurge", snippet: "----------------"));
+    markers["id1"] = Marker(
+        markerId: const MarkerId("id1"),
+        position: location,
+        infoWindow:
+            const InfoWindow(title: "leapsurge", snippet: "----------------"));
+    markers["id2"] = const Marker(
+        markerId: MarkerId("id2"),
+        position: LatLng(13.009420, 77.588860),
+        infoWindow:
+            InfoWindow(title: "secondmmard", snippet: "----------------"));
+    getPoliPoints();
     setState(() {});
   }
 }
